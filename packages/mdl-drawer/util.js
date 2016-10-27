@@ -18,6 +18,7 @@ const TAB_DATA = 'data-mdl-tabindex';
 const TAB_DATA_HANDLED = 'data-mdl-tabindex-handled';
 
 let storedTransformPropertyName_;
+let supportsPassive_;
 
 /**
  * Remap touch events to pointer events, if the browser doesn't support touch events.
@@ -25,7 +26,7 @@ let storedTransformPropertyName_;
  * @param {Object} globalObj The global object, useful for testing (defaults to window).
  * @return {string} The remapped event name.
  */
-function remapEvent(eventName, globalObj = window) {
+export function remapEvent(eventName, globalObj = window) {
   if (!('ontouchstart' in globalObj.document)) {
     switch (eventName) {
       case 'touchstart':
@@ -47,7 +48,7 @@ function remapEvent(eventName, globalObj = window) {
  * @param {Object} globalObj The global object, useful for testing (defaults to window).
  * @return {string} The transform property name.
  */
-function getTransformPropertyName(globalObj = window) {
+export function getTransformPropertyName(globalObj = window) {
   if (storedTransformPropertyName_ === undefined || globalObj !== window) {
     const el = globalObj.document.createElement('div');
     const transformPropertyName = ('transform' in el.style ? 'transform' : '-webkit-transform');
@@ -66,7 +67,7 @@ function getTransformPropertyName(globalObj = window) {
  * @param {Object} globalObj The global object, useful for testing (defaults to window).
  * @return {boolean} Whether the current browser supports CSS properties.
  */
-function supportsCssCustomProperties(globalObj = window) {
+export function supportsCssCustomProperties(globalObj = window) {
   if ('CSS' in globalObj) {
     return globalObj.CSS.supports('(--color: red)');
   }
@@ -74,10 +75,34 @@ function supportsCssCustomProperties(globalObj = window) {
 }
 
 /**
+ * Determine whether the current browser supports passive event listeners, and if so, use them.
+ * @param {Object} globalObj The global object, useful for testing (defaults to window).
+ * @return {Object|boolean} The third argument to the addEventListener method: either an options object or a boolean.
+ */
+export function applyPassive(globalObj = window) {
+  if (supportsPassive_ !== undefined && globalObj === window) {
+    return supportsPassive_ ? {passive: true} : false;
+  }
+
+  let isSupported = false;
+  try {
+    globalObj.document.addEventListener('test', null, {get passive() {
+      isSupported = true;
+    }});
+  } catch (e) { }
+
+  if (globalObj === window) {
+    supportsPassive_ = isSupported;
+  }
+
+  return isSupported ? {passive: true} : false;
+}
+
+/**
  * Save the tab state for an element.
  * @param {Element} el The element for which to save the tab state.
  */
-function saveElementTabState(el) {
+export function saveElementTabState(el) {
   if (el.hasAttribute('tabindex')) {
     el.setAttribute(TAB_DATA, el.getAttribute('tabindex'));
   }
@@ -88,7 +113,7 @@ function saveElementTabState(el) {
  * Restore the tab state for an element, if it was saved.
  * @param {Element} el The element for which to restore the tab state.
  */
-function restoreElementTabState(el) {
+export function restoreElementTabState(el) {
   // Only modify elements we've already handled, in case anything was dynamically added since we saved state.
   if (el.hasAttribute(TAB_DATA_HANDLED)) {
     if (el.hasAttribute(TAB_DATA)) {
@@ -100,5 +125,3 @@ function restoreElementTabState(el) {
     el.removeAttribute(TAB_DATA_HANDLED);
   }
 }
-
-export {remapEvent, getTransformPropertyName, supportsCssCustomProperties, saveElementTabState, restoreElementTabState};

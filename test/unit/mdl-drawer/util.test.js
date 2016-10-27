@@ -91,6 +91,30 @@ test('supportsCssCustomProperties returns dalse for browsers that do not support
   t.end();
 });
 
+test('applyPassive returns an options object for browsers that support passive event listeners', t => {
+  const mockWindow = {
+    document: {
+      addEventListener: function(name, method, options) {
+        return options.passive;
+      }
+    }
+  };
+  t.deepEqual(utils.applyPassive(mockWindow), {passive: true});
+  t.end();
+});
+
+test('applyPassive returns false for browsers that do not support passive event listeners', t => {
+  const mockWindow = {
+    document: {
+      addEventListener: function() {
+        throw new Error();
+      }
+    }
+  };
+  t.false(utils.applyPassive(mockWindow));
+  t.end();
+});
+
 test('saveElementTabState saves the tab index of an element', t => {
   const el = bel`<div id="foo" tabindex="42"></div>`;
   utils.saveElementTabState(el);
